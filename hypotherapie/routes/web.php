@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ClientController;
+use App\Http\Controllers\PoneyController;
+use App\Http\Controllers\RendezVousController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -18,10 +20,15 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-Route::get('/clients', [ClientController::class, 'index']);
-#Route::get('/poneys', PoneyController::class);
-#Route::get('/rendezvous', RendezVousController::class);
-#Route::get('/assignations', AssignationPoneyController::class);
-#Route::get('/factures', FactureController::class);
+
+Route::resource('poneys', PoneyController::class);
+
+Route::resource('clients', ClientController::class);
+
+Route::resource('rendez-vous', RendezVousController::class);
+
+Route::resource('factures', FactureController::class);
+
+Route::resource('rendez-vous', RendezVousController::class);
 
 require __DIR__.'/auth.php';

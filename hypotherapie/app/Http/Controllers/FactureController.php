@@ -11,7 +11,8 @@ class FactureController extends Controller
      */
     public function index()
     {
-        //
+        $factures = \App\Models\Facture::with('client')->get();
+        return view('factures.index', compact('factures'));
     }
 
     /**

@@ -13,6 +13,9 @@ return new class extends Migration
     {
         Schema::create('factures', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('client_id')->constrained()->onDelete('cascade');
+            $table->decimal('montant', 8, 2);
+            $table->date('date_facture');
             $table->timestamps();
         });
     }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Poney;
 use Illuminate\Http\Request;
 
 class PoneyController extends Controller
@@ -11,7 +12,8 @@ class PoneyController extends Controller
      */
     public function index()
     {
-        //
+        $poneys = \App\Models\Poney::all();
+        return view('poneys.index', compact('poneys'));
     }
 
     /**
@@ -19,7 +21,7 @@ class PoneyController extends Controller
      */
     public function create()
     {
-        //
+        return view('poneys.create');
     }
 
     /**
@@ -27,7 +29,13 @@ class PoneyController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $request->validate([
+            'nom' => 'required',
+            'temps_travail' => 'required|integer',
+        ]);
+
+        \App\Models\Poney::create($request->all());
+        return redirect()->route('poneys.index')->with('success', 'Poney ajouté avec succès !.');
     }
 
     /**
@@ -41,24 +49,31 @@ class PoneyController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(string $id)
+    public function edit(Poney $poney)
     {
-        //
+        return view('poneys.edit', compact('poney'));
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, Poney $poney)
     {
-        //
+        $request->validate([
+            'nom' => 'required',
+            'temps_travail' => 'required|integer',
+        ]);
+    
+        $poney->update($request->all());
+        return redirect()->route('poneys.index')->with('success', 'Poney modifié avec succès.');
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(Poney $poney)
     {
-        //
+        $poney->delete(); // Supprime le poney
+        return redirect()->route('poneys.index')->with('success', 'Poney supprimé avec succès.');
     }
 }

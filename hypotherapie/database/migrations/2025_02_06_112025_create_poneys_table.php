@@ -13,6 +13,8 @@ return new class extends Migration
     {
         Schema::create('poneys', function (Blueprint $table) {
             $table->id();
+            $table->string('nom');
+            $table->integer('temps_travail');
             $table->timestamps();
         });
     }
