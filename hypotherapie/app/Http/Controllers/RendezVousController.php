@@ -3,6 +3,9 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\RendezVous;
+use App\Models\Client;
+use App\Models\Poney;
 
 class RendezVousController extends Controller
 {
@@ -78,9 +81,20 @@ class RendezVousController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
-    {
+public function destroy($id)
+{
+    // Récupère le rendez-vous manuellement
+    $rendezVous = RendezVous::find($id);
+
+    // Debugging : Affiche les informations du rendez-vous
+    // dd($rendezVous);
+
+    if ($rendezVous) {
+        // Supprime le rendez-vous
         $rendezVous->delete();
         return redirect()->route('rendez-vous.index')->with('success', 'Rendez-vous supprimé avec succès.');
+    } else {
+        return redirect()->route('rendez-vous.index')->with('error', 'Rendez-vous non trouvé.');
     }
+}
 }

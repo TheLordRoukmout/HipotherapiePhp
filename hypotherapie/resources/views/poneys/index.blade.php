@@ -22,8 +22,8 @@
                 <td>{{ $poney->nom }}</td>
                 <td>{{ $poney->temps_travail }}</td>
                 <td>
-                    <a href="{{ route('poneys.edit', $poney->id) }}">Modifier</a>
-                    <form action="{{ route('poneys.destroy', $poney->id) }}" method="POST" style="display:inline;">
+                    <a href="{{ route('poneys.edit', $poney) }}">Modifier</a>
+                    <form action="{{ route('poneys.destroy', $poney) }}" method="POST" style="display:inline;">
                         @csrf
                         @method('DELETE')
                         <button type="submit">Supprimer</button>

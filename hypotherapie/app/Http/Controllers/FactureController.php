@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\Facture;
+use App\Models\Client;
 
 class FactureController extends Controller
 {
@@ -20,7 +22,8 @@ class FactureController extends Controller
      */
     public function create()
     {
-        //
+        $clients = \App\Models\Client::all();
+        return view('factures.create', compact('clients'));
     }
 
     /**
@@ -28,7 +31,14 @@ class FactureController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $request->validate([
+            'client_id' => 'required|exists:clients,id',
+            'montant' => 'required|numeric',
+            'date_facture' => 'required|date',
+        ]);
+    
+        \App\Models\Facture::create($request->all());
+        return redirect()->route('factures.index')->with('success', 'Facture ajoutée avec succès.');
     }
 
     /**
@@ -42,24 +52,33 @@ class FactureController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(string $id)
+    public function edit(Facture $facture)
     {
-        //
+        $clients = \App\Models\Client::all();
+        return view('factures.edit', compact('facture', 'clients'));
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, Facture $facture)
     {
-        //
+        $request->validate([
+            'client_id' => 'required|exists:clients,id',
+            'montant' => 'required|numeric',
+            'date_facture' => 'required|date',
+        ]);
+    
+        $facture->update($request->all());
+        return redirect()->route('factures.index')->with('success', 'Facture modifiée avec succès.');
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(Facture $facture)
     {
-        //
+        $facture->delete();
+        return redirect()->route('factures.index')->with('success', 'Facture supprimée avec succès.');
     }
 }

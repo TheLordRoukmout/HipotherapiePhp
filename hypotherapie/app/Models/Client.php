@@ -17,4 +17,8 @@ class Client extends Model
     {
         return $this->hasMany(RendezVous::class);
     }
+
+    public function factures(){
+        return $this->hasMany(Facture::class);
+    }
 }

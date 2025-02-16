@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\PoneyController;
 use App\Http\Controllers\RendezVousController;
+use App\Http\Controllers\FactureController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -25,10 +26,12 @@ Route::resource('poneys', PoneyController::class);
 
 Route::resource('clients', ClientController::class);
 
-Route::resource('rendez-vous', RendezVousController::class);
+//Route::resource('rendez-vous', RendezVousController::class);
+Route::resource('rendez-vous', RendezVousController::class)->parameters([
+    'rendez-vous' => 'rendezVous'
+]);
+
 
 Route::resource('factures', FactureController::class);
-
-Route::resource('rendez-vous', RendezVousController::class);
 
 require __DIR__.'/auth.php';
