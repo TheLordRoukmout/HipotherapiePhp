@@ -6,9 +6,10 @@ use App\Http\Controllers\PoneyController;
 use App\Http\Controllers\RendezVousController;
 use App\Http\Controllers\FactureController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ParametreController;
 
 Route::get('/', function () {
-    return redirect('/accueil');
+    return redirect()->route('accueil'); // Utilise le nom de la route
 });
 
 Route::get('/dashboard', function () {
@@ -24,7 +25,7 @@ Route::middleware('auth')->group(function () {
 
 Route::get('/accueil', function () {
     return view('accueil');
-});
+})->name('accueil'); // Ajoute cette ligne
 
 Route::resource('poneys', PoneyController::class);
 
@@ -51,5 +52,8 @@ Route::middleware(['auth', 'role:client'])->group(function () {
         return view('client.dashboard');
     });
 });
+
+Route::get('/parametres', [ParametreController::class, 'index'])->name('parametres.index');
+Route::put('/parametres', [ParametreController::class, 'update'])->name('parametres.update');
 
 require __DIR__.'/auth.php';

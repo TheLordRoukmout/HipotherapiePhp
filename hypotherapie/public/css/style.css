@@ -1,0 +1,47 @@
+*{
+    margin: 0;
+    padding: 0;
+}
+
+/* Conteneur principal */
+.app-container {
+    display: flex;
+    height: 100vh; /* Prend toute la hauteur de l'écran */
+}
+
+/* Menu à gauche */
+.sidebar {
+    width: 150px; /* Largeur du menu */
+    background-color: #333; /* Couleur de fond */
+    padding: 20px;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1); /* Ombre pour le style */
+}
+
+/* Liens du menu */
+.sidebar ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.sidebar ul li {
+    margin-bottom: 15px;
+}
+
+.sidebar ul li a {
+    color: white;
+    text-decoration: none;
+    font-size: 18px;
+}
+
+.sidebar ul li a:hover {
+    color: #ffcc00;
+}
+
+/* Contenu principal */
+.content {
+    flex: 1; /* Prend tout l'espace restant */
+    padding: 20px;
+    background-color: #f4f4f4; /* Couleur de fond du contenu */
+    overflow-y: auto; /* Permet de faire défiler le contenu si nécessaire */
+}

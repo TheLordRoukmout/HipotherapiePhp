@@ -6,6 +6,8 @@
     <title>Liste des Factures</title>
 </head>
 <body>
+@extends('layouts.app')
+@section('content')
     <h1>Liste des Factures</h1>
     <a href="{{ route('factures.create') }}">Ajouter une Facture</a>
     <table border="1">
@@ -35,5 +37,6 @@
             @endforeach
         </tbody>
     </table>
+    @endsection
 </body>
 </html>

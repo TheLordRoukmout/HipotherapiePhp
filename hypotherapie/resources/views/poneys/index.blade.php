@@ -6,6 +6,8 @@
     <title>Liste des Poneys</title>
 </head>
 <body>
+@extends('layouts.app')
+@section('content')
     <h1>Liste des Poneys</h1>
     <a href="{{ route('poneys.create') }}">Ajouter un Poney</a>
     <table border="1">
@@ -33,5 +35,10 @@
             @endforeach
         </tbody>
     </table>
+    @endsection
 </body>
 </html>
+
+
+
+

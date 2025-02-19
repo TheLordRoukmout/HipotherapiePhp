@@ -15,6 +15,12 @@ class RendezVous extends Model
     // Champs autorisés pour l'assignation massive
     protected $fillable = ['client_id', 'poney_id', 'date_heure', 'nombre_personnes'];
 
+    // protected $dates = ['date_heure'];
+
+    protected $casts = [
+        'date_heure' => 'datetime', // Convertit automatiquement en Carbon
+    ];
+
     // Relation avec le modèle Client
     public function client()
     {
