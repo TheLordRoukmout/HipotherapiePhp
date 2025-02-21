@@ -56,56 +56,57 @@ class RendezVousController extends Controller
      * Enregistrer un nouveau rendez-vous.
      */
     public function store(Request $request)
-    {
-        // Validation des données
-        $request->validate([
-            'client_id' => 'required|exists:clients,id',
-            'poney_id' => 'required|exists:poneys,id',
-            'date_heure' => 'required|date',
-            'nombre_personnes' => 'required|integer|min:1',
-        ]);
+{
+    // Validation des champs
+    $request->validate([
+        'client_id' => 'required|exists:clients,id',
+        'poney_id' => 'required|exists:poneys,id',
+        'date' => 'required|date',
+        'heure_debut' => 'required|date_format:H:i',
+        'heure_fin' => 'required|date_format:H:i|after:heure_debut',
+        'nombre_personnes' => 'required|integer|min:1',
+    ]);
 
-        // Récupérer la durée par personne depuis les paramètres
-        $heureParPersonne = Parametre::where('cle', 'heure_par_personne')->value('valeur') ?? 2;
-        $dureeTotale = $heureParPersonne * $request->nombre_personnes;
+    // Fusionner la date et l'heure
+    $dateHeureDebut = Carbon::createFromFormat('Y-m-d H:i', $request->date . ' ' . $request->heure_debut);
+    $dateHeureFin = Carbon::createFromFormat('Y-m-d H:i', $request->date . ' ' . $request->heure_fin);
 
-        // Déterminer l'heure de début et l'heure de fin
-        $dateHeureDebut = Carbon::parse($request->date_heure);
-        $dateHeureFin = $dateHeureDebut->copy()->addHours($dureeTotale);
+    // Vérifier le nombre total de poneys
+    $totalPoneys = Poney::count();
 
-        // Vérifier la disponibilité des poneys
-        $totalPoneys = Poney::count();
-        $poneysUtilises = RendezVous::where(function ($query) use ($dateHeureDebut, $dateHeureFin) {
-            $query->where(function ($q) use ($dateHeureDebut, $dateHeureFin) {
-                $q->where('date_heure', '<', $dateHeureFin)
-                  ->where('date_heure', '>=', $dateHeureDebut);
-            })->orWhere(function ($q) use ($dateHeureDebut, $dateHeureFin) {
-                $q->where('date_heure', '>=', $dateHeureDebut)
-                  ->where('date_heure', '<', $dateHeureFin);
-            });
-        })->count();
+    // Vérifier le nombre de poneys déjà utilisés sur cette journée
+    $poneysUtilises = RendezVous::whereDate('date_heure', $request->date)->count();
 
-        $poneysDisponibles = $totalPoneys - $poneysUtilises;
+    // Calculer les poneys disponibles
+    $poneysDisponibles = $totalPoneys - $poneysUtilises;
 
-        if ($request->nombre_personnes > $poneysDisponibles) {
-            return redirect()->back()->withErrors([
-                'nombre_personnes' => 'Pas assez de poneys disponibles pour ce groupe.',
-            ])->withInput();
-        }
-        
-
-
-        // Créer le rendez-vous avec la durée dynamique
-        RendezVous::create([
-            'client_id' => $request->client_id,
-            'poney_id' => $request->poney_id,
-            'date_heure' => $dateHeureDebut,
-            'date_heure_fin' => $dateHeureFin,
-            'nombre_personnes' => $request->nombre_personnes,
-        ]);
-
-        return redirect()->route('rendez-vous.index')->with('success', 'Rendez-vous créé avec succès.');
+    // Si plus de poneys disponibles, empêcher la réservation
+    if ($poneysDisponibles <= 0) {
+        return redirect()->back()->withErrors([
+            'poney_id' => 'Impossible de créer un rendez-vous : plus de poneys disponibles pour cette journée.',
+        ])->withInput();
     }
+
+    // Vérifier si le poney sélectionné est disponible
+    if (!RendezVous::poneyEstDisponible($request->poney_id, $dateHeureDebut, $dateHeureFin)) {
+        return redirect()->back()->withErrors([
+            'poney_id' => 'Ce poney est déjà réservé sur cette plage horaire.',
+        ])->withInput();
+    }
+
+    // Création du rendez-vous
+    RendezVous::create([
+        'client_id' => $request->client_id,
+        'poney_id' => $request->poney_id,
+        'date_heure' => $dateHeureDebut,
+        'date_heure_fin' => $dateHeureFin,
+        'nombre_personnes' => $request->nombre_personnes,
+    ]);
+
+    return redirect()->route('rendez-vous.index')->with('success', 'Rendez-vous créé avec succès.');
+}
+
+    
 
     /**
      * Afficher le formulaire d'édition d'un rendez-vous.

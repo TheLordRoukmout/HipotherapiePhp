@@ -19,7 +19,7 @@ class RendezVous extends Model
 
     protected $casts = [
         'date_heure' => 'datetime',
-        'date_heure_fin' => 'datetime', // ✅ Ajout pour convertir automatiquement en Carbon
+        'date_heure_fin' => 'datetime',
     ];
 
     // Relation avec le modèle Client
@@ -44,5 +44,21 @@ class RendezVous extends Model
         return $this->hasMany(Participant::class) ?? collect();
     }
 
+    public static function poneyEstDisponible($poney_id, $dateHeureDebut, $dateHeureFin)
+    {
+        // Vérifie si un rendez-vous existe déjà avec ce poney sur cette plage horaire
+        $conflict = self::where('poney_id', $poney_id)
+            ->where(function ($query) use ($dateHeureDebut, $dateHeureFin) {
+                $query->whereBetween('date_heure', [$dateHeureDebut, $dateHeureFin])
+                      ->orWhereBetween('date_heure_fin', [$dateHeureDebut, $dateHeureFin])
+                      ->orWhere(function ($q) use ($dateHeureDebut, $dateHeureFin) {
+                          $q->where('date_heure', '<=', $dateHeureDebut)
+                            ->where('date_heure_fin', '>=', $dateHeureFin);
+                      });
+            })->exists();
+    
+        return !$conflict; // Retourne "true" si le poney est DISPONIBLE
+    }
+    
 
 }
