@@ -44,6 +44,8 @@ Route::resource('rendez-vous', RendezVousController::class)->parameters([
     'rendez-vous' => 'rendezVous'
 ]);
 
+Route::get('/rendez-vous/{rendezVous}', [RendezVousController::class, 'show'])->name('rendez-vous.show');
+
 
 Route::resource('factures', FactureController::class);
 Route::get('/recettes', [FactureController::class, 'historique'])->name('recettes.index');

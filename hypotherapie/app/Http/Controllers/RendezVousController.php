@@ -56,55 +56,66 @@ class RendezVousController extends Controller
      * Enregistrer un nouveau rendez-vous.
      */
     public function store(Request $request)
-{
-    // Validation des champs
-    $request->validate([
-        'client_id' => 'required|exists:clients,id',
-        'poney_id' => 'required|exists:poneys,id',
-        'date' => 'required|date',
-        'heure_debut' => 'required|date_format:H:i',
-        'heure_fin' => 'required|date_format:H:i|after:heure_debut',
-        'nombre_personnes' => 'required|integer|min:1',
-    ]);
-
-    // Fusionner la date et l'heure
-    $dateHeureDebut = Carbon::createFromFormat('Y-m-d H:i', $request->date . ' ' . $request->heure_debut);
-    $dateHeureFin = Carbon::createFromFormat('Y-m-d H:i', $request->date . ' ' . $request->heure_fin);
-
-    // Vérifier le nombre total de poneys
-    $totalPoneys = Poney::count();
-
-    // Vérifier le nombre de poneys déjà utilisés sur cette journée
-    $poneysUtilises = RendezVous::whereDate('date_heure', $request->date)->count();
-
-    // Calculer les poneys disponibles
-    $poneysDisponibles = $totalPoneys - $poneysUtilises;
-
-    // Si plus de poneys disponibles, empêcher la réservation
-    if ($poneysDisponibles <= 0) {
-        return redirect()->back()->withErrors([
-            'poney_id' => 'Impossible de créer un rendez-vous : plus de poneys disponibles pour cette journée.',
-        ])->withInput();
+    {
+        // Validation des champs
+        $request->validate([
+            'client_id' => 'required|exists:clients,id',
+            'poney_id' => 'required|exists:poneys,id',
+            'date' => 'required|date',
+            'heure_debut' => 'required|date_format:H:i',
+            'heure_fin' => 'required|date_format:H:i|after:heure_debut',
+            'nombre_personnes' => 'required|integer|min:1',
+            'prix_heure' => 'required|numeric|min:0', // 🔥 Ajout du prix à l'heure
+        ]);
+    
+        // Fusionner la date et l'heure
+        $dateHeureDebut = Carbon::createFromFormat('Y-m-d H:i', $request->date . ' ' . $request->heure_debut);
+        $dateHeureFin = Carbon::createFromFormat('Y-m-d H:i', $request->date . ' ' . $request->heure_fin);
+    
+        // Vérifier le nombre total de poneys
+        $totalPoneys = Poney::count();
+        $poneysUtilises = RendezVous::whereDate('date_heure', $request->date)->count();
+        $poneysDisponibles = $totalPoneys - $poneysUtilises;
+    
+        // Si plus de poneys disponibles, empêcher la réservation
+        if ($poneysDisponibles <= 0) {
+            return redirect()->back()->withErrors([
+                'poney_id' => 'Impossible de créer un rendez-vous : plus de poneys disponibles pour cette journée.',
+            ])->withInput();
+        }
+    
+        // Vérifier si le poney sélectionné est disponible
+        if (!RendezVous::poneyEstDisponible($request->poney_id, $dateHeureDebut, $dateHeureFin)) {
+            return redirect()->back()->withErrors([
+                'poney_id' => 'Ce poney est déjà réservé sur cette plage horaire.',
+            ])->withInput();
+        }
+    
+        // 🔥 CRÉER LE RENDEZ-VOUS 🔥
+        $rendezVous = RendezVous::create([
+            'client_id' => $request->client_id,
+            'poney_id' => $request->poney_id,
+            'date_heure' => $dateHeureDebut,
+            'date_heure_fin' => $dateHeureFin,
+            'nombre_personnes' => $request->nombre_personnes,
+        ]);
+    
+        // 🔥 CALCULER LE MONTANT 🔥
+        $montant = $this->calculerMontant($rendezVous, $request->prix_heure);
+    
+        // 🔥 CRÉER LA FACTURE 🔥
+        \App\Models\Facture::create([
+            'client_id' => $rendezVous->client_id,
+            'rendez_vous_id' => $rendezVous->id,
+            'montant' => $montant,
+            'date_facture' => now(),
+            'statut' => 'impayée',
+        ]);
+    
+        return redirect()->route('rendez-vous.index')->with('success', 'Rendez-vous créé avec succès.');
     }
-
-    // Vérifier si le poney sélectionné est disponible
-    if (!RendezVous::poneyEstDisponible($request->poney_id, $dateHeureDebut, $dateHeureFin)) {
-        return redirect()->back()->withErrors([
-            'poney_id' => 'Ce poney est déjà réservé sur cette plage horaire.',
-        ])->withInput();
-    }
-
-    // Création du rendez-vous
-    RendezVous::create([
-        'client_id' => $request->client_id,
-        'poney_id' => $request->poney_id,
-        'date_heure' => $dateHeureDebut,
-        'date_heure_fin' => $dateHeureFin,
-        'nombre_personnes' => $request->nombre_personnes,
-    ]);
-
-    return redirect()->route('rendez-vous.index')->with('success', 'Rendez-vous créé avec succès.');
-}
+    
+    
 
     
 
@@ -214,7 +225,27 @@ class RendezVousController extends Controller
         return redirect()->route('rendez-vous.index')->with('success', 'Poneys attribués avec succès.');
     }
 
+    public function show(RendezVous $rendezVous)
+    {
+        return view('rendez-vous.show', compact('rendezVous'));
+    }
 
+    private function calculerMontant($rendezVous)
+    {
+        // Définir un tarif horaire par personne (exemple : 20€/heure)
+        $tarifHoraire = 20;
+
+        // Vérifier que les dates sont bien définies
+        if (!$rendezVous->date_heure || !$rendezVous->date_heure_fin) {
+            return 0; // Si les dates ne sont pas valides, renvoyer 0€
+        }
+
+        // Calcul de la durée en heures
+        $dureeHeures = $rendezVous->date_heure_fin->diffInHours($rendezVous->date_heure);
+
+        // Calcul du montant total
+        return $dureeHeures * $tarifHoraire * $rendezVous->nombre_personnes;
+    }
 
 
 }

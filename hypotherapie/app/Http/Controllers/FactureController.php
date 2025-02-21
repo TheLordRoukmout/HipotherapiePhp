@@ -106,5 +106,18 @@ class FactureController extends Controller
         return view('recettes.index', compact('moisDisponibles', 'moisChoisi', 'factures', 'totalRecettes'));
     }
     
+    private function calculerMontant($rendezVous)
+    {
+        // Tarif horaire par personne (exemple : 20€/heure)
+        $tarifHoraire = 20;
+
+        // Durée en heures du rendez-vous
+        $dureeHeures = $rendezVous->date_heure_fin->diffInHours($rendezVous->date_heure);
+
+        // Calcul du montant total
+        return $dureeHeures * $tarifHoraire * $rendezVous->nombre_personnes;
+    }
+
+
 
 }

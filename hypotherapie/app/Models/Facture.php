@@ -14,4 +14,10 @@ class Facture extends Model
         return $this->belongsTo(Client::class);
     }
 
+    public function rendezVous()
+    {
+        return $this->belongsTo(RendezVous::class);
+    }
+
+
 }

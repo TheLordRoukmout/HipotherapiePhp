@@ -14,10 +14,13 @@ return new class extends Migration
         Schema::create('factures', function (Blueprint $table) {
             $table->id();
             $table->foreignId('client_id')->constrained()->onDelete('cascade');
-            $table->decimal('montant', 8, 2);
+            $table->foreignId('rendez_vous_id')->nullable()->constrained()->onDelete('cascade');
+            $table->decimal('montant', 10, 2);
+            $table->enum('statut', ['impayée', 'payée', 'annulée'])->default('impayée');
             $table->date('date_facture');
             $table->timestamps();
         });
+        
     }
 
     /**
