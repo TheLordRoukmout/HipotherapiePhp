@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 use App\Models\Facture;
 use App\Models\Client;
 
@@ -81,4 +83,28 @@ class FactureController extends Controller
         $facture->delete();
         return redirect()->route('factures.index')->with('success', 'Facture supprimée avec succès.');
     }
+
+    public function historique(Request $request)
+    {
+        // Récupère la liste des mois disponibles
+        $moisDisponibles = Facture::select(DB::raw("DATE_FORMAT(date_facture, '%Y-%m') as mois"))
+            ->groupBy('mois')
+            ->orderBy('mois', 'desc')
+            ->pluck('mois');
+    
+        // Récupère le mois sélectionné (ou le mois en cours par défaut)
+        $moisChoisi = $request->query('mois', now()->format('Y-m'));
+    
+        // Récupère les factures du mois sélectionné
+        $factures = Facture::where(DB::raw("DATE_FORMAT(date_facture, '%Y-%m')"), $moisChoisi)
+            ->with('client')
+            ->get();
+    
+        // Calcule le total des factures du mois
+        $totalRecettes = $factures->sum('montant');
+    
+        return view('recettes.index', compact('moisDisponibles', 'moisChoisi', 'factures', 'totalRecettes'));
+    }
+    
+
 }

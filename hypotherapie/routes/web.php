@@ -22,6 +22,14 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
+//___________ AJout route pour attribution poney
+Route::get('/rendez-vous/attribuer/{id}', [RendezVousController::class, 'attribuer'])->name('rendez-vous.attribuer');
+Route::post('/rendez-vous/attribuer/{id}', [RendezVousController::class, 'sauvegarderAttribution'])->name('rendez-vous.sauvegarderAttribution');
+
+
+
+
+
 
 Route::get('/accueil', function () {
     return view('accueil');
@@ -38,6 +46,12 @@ Route::resource('rendez-vous', RendezVousController::class)->parameters([
 
 
 Route::resource('factures', FactureController::class);
+Route::get('/recettes', [FactureController::class, 'historique'])->name('recettes.index');
+Route::get('/recettes/{mois}', [FactureController::class, 'detailMois'])->name('recettes.detail');
+Route::get('/recettes', [FactureController::class, 'historique'])->name('recettes.index');
+
+
+
 
 Route::middleware(['auth', 'role:admin'])->group(function () {
     // Routes réservées aux administrateurs

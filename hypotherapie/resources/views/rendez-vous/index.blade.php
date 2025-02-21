@@ -35,6 +35,9 @@
         .btn-danger {
             background-color: #dc3545; /* Rouge */
         }
+        .btn-info{
+            background-color:rgb(28, 90, 17); /* Rouge */  
+        }
         .btn:hover {
             opacity: 0.8;
         }
@@ -110,8 +113,7 @@
                         <td>{{ $rdv->client->nom }}</td>
                         <td>{{ $rdv->nombre_personnes }}</td>
                         <td>
-                            {{ $rdv->date_heure->format('H:i') }} à 
-                            {{ $rdv->date_heure->copy()->addHours(2)->format('H:i') }} <!-- Durée de 2h -->
+                            {{ $rdv->date_heure->format('d/m/Y H:i') }} - {{ $rdv->date_heure_fin->format('H:i') }}
                         </td>
                         <td>{{ $rdv->poney->nom }}</td>
                         <td>
@@ -120,7 +122,9 @@
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="btn btn-danger" onclick="return confirm('Êtes-vous sûr de vouloir supprimer ce rendez-vous ?')">Supprimer</button>
+                                <a href="{{ route('rendez-vous.attribuer', $rdv->id) }}" class="btn btn-info">Attribuer un Poney</a>
                             </form>
+                            
                         </td>
                     </tr>
                 @endforeach

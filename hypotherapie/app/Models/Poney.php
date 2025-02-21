@@ -16,5 +16,6 @@ class Poney extends Model
     public function rendezVous()
     {
         return $this->hasMany(RendezVous::class);
+        return $this->belongsToMany(RendezVous::class, 'rendez_vous_poney');
     }
 }

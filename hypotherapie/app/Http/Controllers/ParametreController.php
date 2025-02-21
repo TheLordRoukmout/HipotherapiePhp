@@ -83,13 +83,13 @@ class ParametreController extends Controller
         // Mettre à jour l'heure par personne
         Parametre::updateOrCreate(
             ['cle' => 'heure_par_personne'],
-            ['valeur' => $request->heure_par_personne]
-        );
+            ['valeur' => $request->heure_par_personne, 'updated_at' => now()]
+        );  
 
         // Mettre à jour le prix par personne
         Parametre::updateOrCreate(
             ['cle' => 'prix_par_personne'],
-            ['valeur' => $request->prix_par_personne]
+            ['valeur' => $request->prix_par_personne, 'updated_at' => now()]
         );
 
         return redirect()->route('parametres.index')->with('success', 'Paramètres mis à jour avec succès !');

@@ -13,12 +13,13 @@ class RendezVous extends Model
     protected $table = 'rendez_vous';
 
     // Champs autorisés pour l'assignation massive
-    protected $fillable = ['client_id', 'poney_id', 'date_heure', 'nombre_personnes'];
+    protected $fillable = ['client_id', 'poney_id', 'date_heure', 'date_heure_fin', 'nombre_personnes'];
 
     // protected $dates = ['date_heure'];
 
     protected $casts = [
-        'date_heure' => 'datetime', // Convertit automatiquement en Carbon
+        'date_heure' => 'datetime',
+        'date_heure_fin' => 'datetime', // ✅ Ajout pour convertir automatiquement en Carbon
     ];
 
     // Relation avec le modèle Client
@@ -32,4 +33,16 @@ class RendezVous extends Model
     {
         return $this->belongsTo(Poney::class);
     }
+
+    public function poneys()
+    {
+        return $this->belongsToMany(Poney::class, 'rendez_vous_poney');
+    }
+
+    public function participants()
+    {
+        return $this->hasMany(Participant::class) ?? collect();
+    }
+
+
 }

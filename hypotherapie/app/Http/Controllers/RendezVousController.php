@@ -6,170 +6,119 @@ use Illuminate\Http\Request;
 use App\Models\RendezVous;
 use App\Models\Client;
 use App\Models\Poney;
+use App\Models\Parametre;
+use Carbon\Carbon;
 
 class RendezVousController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Afficher la liste des rendez-vous.
      */
     public function index()
     {
-        // Récupère la date d'aujourd'hui
         $today = now()->format('Y-m-d');
-    
-        // Rendez-vous passés
+
+        // Chargement des rendez-vous avec relations
         $rendezVousPasses = RendezVous::with(['client', 'poney'])
             ->whereDate('date_heure', '<', $today)
-            ->orderBy('date_heure', 'desc') // Du plus récent au plus ancien
+            ->orderBy('date_heure', 'desc')
             ->get();
-    
-        // Rendez-vous d'aujourd'hui
+
         $rendezVousAujourdhui = RendezVous::with(['client', 'poney'])
             ->whereDate('date_heure', $today)
             ->orderBy('date_heure', 'asc')
             ->get();
-    
-        // Rendez-vous futurs
+
         $rendezVousFuturs = RendezVous::with(['client', 'poney'])
             ->whereDate('date_heure', '>', $today)
-            ->orderBy('date_heure', 'asc') // Du plus proche au plus lointain
+            ->orderBy('date_heure', 'asc')
             ->get();
-    
-        // Calcule le nombre de poneys disponibles pour aujourd'hui
-        $totalPoneys = Poney::count(); // Nombre total de poneys
-        $poneysUtilises = 0;
-    
-        // Parcourt tous les rendez-vous d'aujourd'hui pour calculer les poneys utilisés
-        foreach ($rendezVousAujourdhui as $rdv) {
-            // Convertit manuellement en Carbon si nécessaire
-            $rdv->date_heure = \Carbon\Carbon::parse($rdv->date_heure);
-    
-            // Heure de début et de fin du rendez-vous actuel
-            $debutRdv = $rdv->date_heure;
-            $finRdv = $rdv->date_heure->copy()->addHours(2); // Durée de 2h
-    
-            // Récupère les rendez-vous qui se chevauchent avec le rendez-vous actuel
-            $rendezVousChevauchants = RendezVous::where(function ($query) use ($debutRdv, $finRdv) {
-                $query->where(function ($q) use ($debutRdv, $finRdv) {
-                    // Rendez-vous qui commencent avant et se terminent après le début du rendez-vous actuel
-                    $q->where('date_heure', '<', $finRdv)
-                      ->where('date_heure', '>=', $debutRdv->copy()->subHours(2));
-                })->orWhere(function ($q) use ($debutRdv, $finRdv) {
-                    // Rendez-vous qui commencent pendant le rendez-vous actuel
-                    $q->where('date_heure', '>=', $debutRdv)
-                      ->where('date_heure', '<', $finRdv);
-                });
-            })->get();
-    
-            // Additionne le nombre de personnes pour chaque rendez-vous chevauchant
-            foreach ($rendezVousChevauchants as $rdvChevauchant) {
-                $poneysUtilises += $rdvChevauchant->nombre_personnes;
-            }
-        }
-    
-        // Calcule le nombre de poneys disponibles
+
+        // Calcul du nombre de poneys disponibles aujourd'hui
+        $totalPoneys = Poney::count();
+        $poneysUtilises = RendezVous::whereDate('date_heure', $today)->count();
         $poneysDisponibles = $totalPoneys - $poneysUtilises;
-    
-        // Passe les données à la vue
+
         return view('rendez-vous.index', compact('rendezVousPasses', 'rendezVousAujourdhui', 'rendezVousFuturs', 'poneysDisponibles'));
     }
 
     /**
-     * Show the form for creating a new resource.
+     * Afficher le formulaire de création d'un rendez-vous.
      */
     public function create()
     {
-        $clients = \App\Models\Client::all();
-        $poneys = \App\Models\Poney::all();
+        $clients = Client::all();
+        $poneys = Poney::all();
         return view('rendez-vous.create', compact('clients', 'poneys'));
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Enregistrer un nouveau rendez-vous.
      */
     public function store(Request $request)
     {
-        // Valider les données du formulaire
+        // Validation des données
         $request->validate([
             'client_id' => 'required|exists:clients,id',
             'poney_id' => 'required|exists:poneys,id',
             'date_heure' => 'required|date',
             'nombre_personnes' => 'required|integer|min:1',
         ]);
-    
-        // Convertir la date_heure en objet Carbon
-        $dateHeureDebut = \Carbon\Carbon::parse($request->date_heure);
-        $dateHeureFin = $dateHeureDebut->copy()->addHours(2); // Durée de 2h
-    
-        // Récupère le nombre total de poneys
+
+        // Récupérer la durée par personne depuis les paramètres
+        $heureParPersonne = Parametre::where('cle', 'heure_par_personne')->value('valeur') ?? 2;
+        $dureeTotale = $heureParPersonne * $request->nombre_personnes;
+
+        // Déterminer l'heure de début et l'heure de fin
+        $dateHeureDebut = Carbon::parse($request->date_heure);
+        $dateHeureFin = $dateHeureDebut->copy()->addHours($dureeTotale);
+
+        // Vérifier la disponibilité des poneys
         $totalPoneys = Poney::count();
-    
-        // Récupère les rendez-vous qui se chevauchent avec le nouveau rendez-vous
-        $rendezVousChevauchants = RendezVous::where(function ($query) use ($dateHeureDebut, $dateHeureFin) {
+        $poneysUtilises = RendezVous::where(function ($query) use ($dateHeureDebut, $dateHeureFin) {
             $query->where(function ($q) use ($dateHeureDebut, $dateHeureFin) {
-                // Rendez-vous qui commencent avant et se terminent après le début du nouveau rendez-vous
                 $q->where('date_heure', '<', $dateHeureFin)
-                  ->where('date_heure', '>=', $dateHeureDebut->copy()->subHours(2));
+                  ->where('date_heure', '>=', $dateHeureDebut);
             })->orWhere(function ($q) use ($dateHeureDebut, $dateHeureFin) {
-                // Rendez-vous qui commencent pendant le nouveau rendez-vous
                 $q->where('date_heure', '>=', $dateHeureDebut)
                   ->where('date_heure', '<', $dateHeureFin);
             });
-        })->get();
-    
-        // Calcule le nombre de poneys utilisés
-        $poneysUtilises = 0;
-        foreach ($rendezVousChevauchants as $rendezVous) {
-            $poneysUtilises += $rendezVous->nombre_personnes;
-        }
-    
-        // Calcule le nombre de poneys disponibles
+        })->count();
+
         $poneysDisponibles = $totalPoneys - $poneysUtilises;
-    
-        // Vérifie si le nombre de poneys disponibles est suffisant
+
         if ($request->nombre_personnes > $poneysDisponibles) {
             return redirect()->back()->withErrors([
-                'nombre_personnes' => 'Il n\'y a pas assez de poneys disponibles pour ce groupe.',
+                'nombre_personnes' => 'Pas assez de poneys disponibles pour ce groupe.',
             ])->withInput();
         }
-    
-        // Créer le nouveau rendez-vous
+        
+
+
+        // Créer le rendez-vous avec la durée dynamique
         RendezVous::create([
             'client_id' => $request->client_id,
             'poney_id' => $request->poney_id,
-            'date_heure' => $request->date_heure,
+            'date_heure' => $dateHeureDebut,
+            'date_heure_fin' => $dateHeureFin,
             'nombre_personnes' => $request->nombre_personnes,
         ]);
-    
-        // Mettre à jour le nombre de poneys disponibles
-        $poneysDisponibles -= $request->nombre_personnes;
-    
+
         return redirect()->route('rendez-vous.index')->with('success', 'Rendez-vous créé avec succès.');
     }
-    
-    
-    
 
     /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
+     * Afficher le formulaire d'édition d'un rendez-vous.
      */
     public function edit(RendezVous $rendezVous)
     {
-        $clients = \App\Models\Client::all();
-        $poneys = \App\Models\Poney::all();
+        $clients = Client::all();
+        $poneys = Poney::all();
         return view('rendez-vous.edit', compact('rendezVous', 'clients', 'poneys'));
     }
 
     /**
-     * Update the specified resource in storage.
+     * Mettre à jour un rendez-vous existant.
      */
     public function update(Request $request, RendezVous $rendezVous)
     {
@@ -179,28 +128,92 @@ class RendezVousController extends Controller
             'date_heure' => 'required|date',
             'nombre_personnes' => 'required|integer|min:1',
         ]);
-    
-        $rendezVous->update($request->all());
-        return redirect()->route('rendez-vous.index')->with('success', 'Rendez-vous modifié avec succès.');
+
+        // Récupérer la durée par personne depuis les paramètres
+        $heureParPersonne = Parametre::where('cle', 'heure_par_personne')->value('valeur') ?? 2;
+        $dureeTotale = $heureParPersonne * $request->nombre_personnes;
+
+        // Déterminer l'heure de début et l'heure de fin
+        $dateHeureDebut = Carbon::parse($request->date_heure);
+        $dateHeureFin = $dateHeureDebut->copy()->addHours($dureeTotale);
+
+        // Mettre à jour le rendez-vous
+        $rendezVous->update([
+            'client_id' => $request->client_id,
+            'poney_id' => $request->poney_id,
+            'date_heure' => $dateHeureDebut,
+            'date_heure_fin' => $dateHeureFin,
+            'nombre_personnes' => $request->nombre_personnes,
+        ]);
+
+        return redirect()->route('rendez-vous.index')->with('success', 'Rendez-vous mis à jour avec succès.');
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Supprimer un rendez-vous.
      */
-public function destroy($id)
-{
-    // Récupère le rendez-vous manuellement
-    $rendezVous = RendezVous::find($id);
+    public function destroy($id)
+    {
+        $rendezVous = RendezVous::find($id);
 
-    // Debugging : Affiche les informations du rendez-vous
-    // dd($rendezVous);
+        if ($rendezVous) {
+            $rendezVous->delete();
+            return redirect()->route('rendez-vous.index')->with('success', 'Rendez-vous supprimé avec succès.');
+        }
 
-    if ($rendezVous) {
-        // Supprime le rendez-vous
-        $rendezVous->delete();
-        return redirect()->route('rendez-vous.index')->with('success', 'Rendez-vous supprimé avec succès.');
-    } else {
         return redirect()->route('rendez-vous.index')->with('error', 'Rendez-vous non trouvé.');
     }
-}
+
+        /**
+     * Afficher la page d'attribution des poneys.
+     */
+    public function attribuer($id)
+    {
+        $rendezVous = RendezVous::with(['client', 'poney', 'participants.poney'])->findOrFail($id);
+        $poneys = Poney::all();
+        $clients = Client::all();
+
+        return view('rendez-vous.attribution', compact('rendezVous', 'poneys', 'clients'));
+    }
+
+        /**
+     * Sauvegarder l'attribution des poneys à un rendez-vous.
+     */
+    public function sauvegarderAttribution(Request $request, $id)
+    {
+        $request->validate([
+            'poneys_ids' => 'required|array',
+            'poneys_ids.*' => 'exists:poneys,id',
+            'participants' => 'nullable|array',
+            'participants.*.nom' => 'required|string',
+            'participants.*.poney_id' => 'required|exists:poneys,id',
+        ]);
+
+        $rendezVous = RendezVous::findOrFail($id);
+
+        // Supprime les anciens participants pour éviter les doublons
+        $rendezVous->participants()->delete();
+
+        // Ajoute le client principal comme premier participant
+        \App\Models\Participant::create([
+            'rendez_vous_id' => $rendezVous->id,
+            'nom' => $rendezVous->client->nom, // Le nom du client principal
+            'poney_id' => $request->poneys_ids[0], // Le premier poney choisi
+        ]);
+
+        // Ajoute les autres participants
+        foreach ($request->participants as $participant) {
+            \App\Models\Participant::create([
+                'rendez_vous_id' => $rendezVous->id,
+                'nom' => $participant['nom'],
+                'poney_id' => $participant['poney_id'],
+            ]);
+        }
+
+        return redirect()->route('rendez-vous.index')->with('success', 'Poneys attribués avec succès.');
+    }
+
+
+
+
 }

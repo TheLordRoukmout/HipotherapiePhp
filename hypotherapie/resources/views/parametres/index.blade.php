@@ -15,7 +15,7 @@
 
         <div>
             <label for="prix_par_personne">Prix par personne :</label>
-            <input type="number" name="prix_par_personne" id="prix_par_personne" value="{{ $prixParPersonne->valeur }}" required>
+            <input type="number" name="prix_par_personne" id="prix_par_personne" value="{{ $prixParPersonne->valeur ?? 15 }}" required>
         </div>
 
         <button type="submit">Mettre à jour</button>
