@@ -5,6 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Parametre;
 use Illuminate\Http\Request;
 
+// controller mis en place mais abandonné lors du développement car il ne me servait a rien
+
+
 class ParametreController extends Controller
 {
     /**

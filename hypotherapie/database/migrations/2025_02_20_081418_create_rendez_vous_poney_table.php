@@ -9,11 +9,11 @@ return new class extends Migration {
         Schema::create('rendez_vous_poney', function (Blueprint $table) {
             $table->id();
             $table->foreignId('rendez_vous_id')
-                ->constrained('rendez_vous') // ✅ Spécifier explicitement la table "rendez_vous"
+                ->constrained('rendez_vous') // Spécifier explicitement la table "rendez_vous" sinon erreur rendez-vouses
                 ->onDelete('cascade');
         
             $table->foreignId('poney_id')
-                ->constrained('poneys') // ✅ S'assurer que "poneys" est correct
+                ->constrained('poneys') // S'assurer que "poneys" est correct
                 ->onDelete('cascade');
         
             $table->timestamps();

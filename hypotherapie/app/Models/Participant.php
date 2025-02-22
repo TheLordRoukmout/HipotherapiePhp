@@ -9,7 +9,7 @@ class Participant extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['rendez_vous_id', 'nom', 'poney_id']; // ✅ Ajout de rendez_vous_id
+    protected $fillable = ['rendez_vous_id', 'nom', 'poney_id']; // Ajout de rendez_vous_id
 
     // Relation avec RendezVous
     public function rendezVous()
