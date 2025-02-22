@@ -75,7 +75,6 @@ class PoneyController extends Controller
      */
     public function destroy(Poney $poney)
     {
-        dd($poney);
         $poney->delete(); // Supprime le poney
         return redirect()->route('poneys.index')->with('success', 'Poney supprimé avec succès.');
     }
