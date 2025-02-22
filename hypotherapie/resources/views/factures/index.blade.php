@@ -11,6 +11,7 @@
 @section('content')
     <h1>Liste des Factures</h1>
     <a href="{{ route('factures.create') }}" class="btn btn-primary">Ajouter une Facture</a>
+    <a href="{{ route('recettes.index') }}" class="btn btn-primary">Factures mensuel</a>
 
     <table class="table table-striped">
         <thead>

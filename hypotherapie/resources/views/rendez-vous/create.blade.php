@@ -22,6 +22,26 @@
                     <option value="{{ $poney->id }}">{{ $poney->nom }}</option>
                 @endforeach
             </select>
+            <select name="poney_id" required>
+                @foreach ($poneys as $poney)
+                    @php
+                        // Vérifier le temps de travail utilisé aujourd'hui
+                        $tempsTravailUtilise = isset($rendezVous[$poney->id])
+                            ? collect($rendezVous[$poney->id])->sum(function($rdv) {
+                                return \Carbon\Carbon::parse($rdv->date_heure)
+                                        ->diffInHours(\Carbon\Carbon::parse($rdv->date_heure_fin));
+                            })
+                            : 0;
+
+                        // Calculer le temps restant
+                        $tempsRestant = max(0, $poney->temps_travail - $tempsTravailUtilise);
+                    @endphp
+
+                    <option value="{{ $poney->id }}" {{ $tempsRestant <= 0 ? 'disabled' : '' }}>
+                        {{ $poney->nom }} (Restant : {{ $tempsRestant }}h)
+                    </option>
+                @endforeach
+            </select>
         </div>
 
         <div>
@@ -56,7 +76,7 @@
         <button type="submit">Créer le rendez-vous</button>
     </form>
 
-    <!-- 🔥 Script JavaScript pour calculer le prix total -->
+    <!-- C'est juste pour afficher le calcul de prix en direct rien avoir avec le back j'espere que ça causera pas de problème -->
     <script>
         function calculerPrixTotal() {
             let heureDebut = document.getElementById("heure_debut").value;

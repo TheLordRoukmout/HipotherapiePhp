@@ -13,7 +13,9 @@ class PoneyController extends Controller
     public function index()
     {
         $poneys = \App\Models\Poney::all();
-        return view('poneys.index', compact('poneys'));
+        $rendezVous = \App\Models\RendezVous::whereDate('date_heure', now()->format('Y-m-d'))->get()->groupBy('poney_id');
+
+        return view('poneys.index', compact('poneys', 'rendezVous'));
     }
 
     /**
@@ -77,4 +79,19 @@ class PoneyController extends Controller
         $poney->delete(); // Supprime le poney
         return redirect()->route('poneys.index')->with('success', 'Poney supprimé avec succès.');
     }
+
+    public function suivi()
+    {
+        $poneys = Poney::all()->map(function ($poney) {
+            $tempsTravailUtilise = RendezVous::where('poney_id', $poney->id)
+                ->whereDate('date_heure', now()->format('Y-m-d'))
+                ->sum(DB::raw('TIMESTAMPDIFF(HOUR, date_heure, date_heure_fin)'));
+
+            $poney->temps_restant = max(0, $poney->temps_travail - $tempsTravailUtilise);
+            return $poney;
+        });
+
+        return view('poneys.suivi', compact('poneys'));
+    }
+
 }

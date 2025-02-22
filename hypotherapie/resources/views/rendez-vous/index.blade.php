@@ -4,48 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Liste des Rendez-vous</title>
-    <style>
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
-        }
-        th, td {
-            padding: 10px;
-            border: 1px solid #ddd;
-            text-align: left;
-        }
-        th {
-            background-color: #f4f4f4;
-        }
-        .btn {
-            padding: 5px 10px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            text-decoration: none;
-            color: white;
-        }
-        .btn-primary {
-            background-color: #007bff; /* Bleu */
-        }
-        .btn-warning {
-            background-color: #ffc107; /* Jaune */
-        }
-        .btn-danger {
-            background-color: #dc3545; /* Rouge */
-        }
-        .btn-info{
-            background-color:rgb(28, 90, 17); /* Rouge */  
-        }
-        .btn:hover {
-            opacity: 0.8;
-        }
-        h2 {
-            margin-top: 30px;
-            margin-bottom: 10px;
-        }
-    </style>
 </head>
 <body>
 @extends('layouts.app')

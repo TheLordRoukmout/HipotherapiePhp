@@ -19,5 +19,10 @@ class Facture extends Model
         return $this->belongsTo(RendezVous::class);
     }
 
+    public function setMontantAttribute($value)
+    {
+        $this->attributes['montant'] = abs($value); // Montant toujours positif
+    }
+
 
 }

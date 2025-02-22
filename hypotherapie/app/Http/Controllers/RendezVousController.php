@@ -8,6 +8,7 @@ use App\Models\Client;
 use App\Models\Poney;
 use App\Models\Parametre;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class RendezVousController extends Controller
 {
@@ -57,7 +58,7 @@ class RendezVousController extends Controller
      */
     public function store(Request $request)
     {
-        // Validation des champs
+        // ✅ Validation des champs
         $request->validate([
             'client_id' => 'required|exists:clients,id',
             'poney_id' => 'required|exists:poneys,id',
@@ -65,33 +66,52 @@ class RendezVousController extends Controller
             'heure_debut' => 'required|date_format:H:i',
             'heure_fin' => 'required|date_format:H:i|after:heure_debut',
             'nombre_personnes' => 'required|integer|min:1',
-            'prix_heure' => 'required|numeric|min:0', // 🔥 Ajout du prix à l'heure
+            'prix_heure' => 'required|numeric|min:0', // ✅ Prix à l'heure ne peut pas être négatif
         ]);
     
-        // Fusionner la date et l'heure
+        // ✅ Fusionner la date et l'heure
         $dateHeureDebut = Carbon::createFromFormat('Y-m-d H:i', $request->date . ' ' . $request->heure_debut);
         $dateHeureFin = Carbon::createFromFormat('Y-m-d H:i', $request->date . ' ' . $request->heure_fin);
     
-        // Vérifier le nombre total de poneys
+        // ✅ Vérifier le nombre total de poneys
         $totalPoneys = Poney::count();
         $poneysUtilises = RendezVous::whereDate('date_heure', $request->date)->count();
         $poneysDisponibles = $totalPoneys - $poneysUtilises;
     
-        // Si plus de poneys disponibles, empêcher la réservation
+        // ❌ Si plus de poneys disponibles, empêcher la réservation
         if ($poneysDisponibles <= 0) {
             return redirect()->back()->withErrors([
                 'poney_id' => 'Impossible de créer un rendez-vous : plus de poneys disponibles pour cette journée.',
             ])->withInput();
         }
     
-        // Vérifier si le poney sélectionné est disponible
+        // ❌ Vérifier si le poney sélectionné est disponible
         if (!RendezVous::poneyEstDisponible($request->poney_id, $dateHeureDebut, $dateHeureFin)) {
             return redirect()->back()->withErrors([
                 'poney_id' => 'Ce poney est déjà réservé sur cette plage horaire.',
             ])->withInput();
         }
+
+        $poney = Poney::find($request->poney_id);
+
+    // Calcul du temps de travail déjà utilisé aujourd'hui
+    $tempsTravailUtilise = RendezVous::where('poney_id', $poney->id)
+        ->whereDate('date_heure', $request->date)
+        ->sum(DB::raw('TIMESTAMPDIFF(HOUR, date_heure, date_heure_fin)'));
+
+    // Vérifier si le poney peut encore travailler
+    $heureFin = is_numeric($request->heure_fin) ? floatval($request->heure_fin) : 0;
+    $heureDebut = is_numeric($request->heure_debut) ? floatval($request->heure_debut) : 0;
+    $tempsTravailMax = is_numeric($poney->temps_travail) ? floatval($poney->temps_travail) : 0;
+    $tempsUtilise = is_numeric($tempsTravailUtilise) ? floatval($tempsTravailUtilise) : 0;
     
-        // 🔥 CRÉER LE RENDEZ-VOUS 🔥
+    if (($tempsUtilise + ($heureFin - $heureDebut)) > $tempsTravailMax) {
+        return redirect()->back()->withErrors([
+            'poney_id' => 'Ce poney a atteint son temps de travail maximal pour aujourd\'hui.',
+        ])->withInput();
+    }
+
+        // ✅ CRÉER LE RENDEZ-VOUS
         $rendezVous = RendezVous::create([
             'client_id' => $request->client_id,
             'poney_id' => $request->poney_id,
@@ -100,10 +120,13 @@ class RendezVousController extends Controller
             'nombre_personnes' => $request->nombre_personnes,
         ]);
     
-        // 🔥 CALCULER LE MONTANT 🔥
-        $montant = $this->calculerMontant($rendezVous, $request->prix_heure);
+        // ✅ CALCULER LE MONTANT (Correction du problème de négatif)
+        $montant = abs($this->calculerMontant($rendezVous, $request->prix_heure)); // 🔥 Ajout de abs() pour être sûr que c'est positif
     
-        // 🔥 CRÉER LA FACTURE 🔥
+        // 🔍 DEBUG : Vérifie si le montant est bien positif avant d'enregistrer la facture
+        \Log::info("Montant calculé pour la facture: $montant");
+        
+        // ✅ CRÉER LA FACTURE
         \App\Models\Facture::create([
             'client_id' => $rendezVous->client_id,
             'rendez_vous_id' => $rendezVous->id,
@@ -111,11 +134,19 @@ class RendezVousController extends Controller
             'date_facture' => now(),
             'statut' => 'impayée',
         ]);
+
+        $poneys = Poney::all()->map(function ($poney) {
+            $tempsTravailUtilise = RendezVous::where('poney_id', $poney->id)
+                ->whereDate('date_heure', now()->format('Y-m-d'))
+                ->sum(DB::raw('TIMESTAMPDIFF(HOUR, date_heure, date_heure_fin)'));
+            
+            $poney->temps_restant = max(0, $poney->temps_travail - $tempsTravailUtilise);
+            return $poney;
+        });
+        
     
         return redirect()->route('rendez-vous.index')->with('success', 'Rendez-vous créé avec succès.');
-    }
-    
-    
+    }    
 
     
 
@@ -246,6 +277,5 @@ class RendezVousController extends Controller
         // Calcul du montant total
         return $dureeHeures * $tarifHoraire * $rendezVous->nombre_personnes;
     }
-
 
 }
